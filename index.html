@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gun is Not Undertuned - Deadlock Thesis</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    :root {
+      --gun: #378ADD;
+      --spirit: #D4537E;
+      --green: #1D9E75;
+      --orange: #D85A30;
+      --muted: #888780;
+      --bg: #0f0f10;
+      --bg2: #1a1a1c;
+      --bg3: #242428;
+      --border: #2e2e32;
+      --text: #e8e6e0;
+      --text2: #9b9891;
+      --accent: #378ADD;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0f0f10 50%, #1a0a12 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 4rem 2rem 3rem;
+      text-align: center;
+    }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(55,138,221,0.12);
+      color: var(--gun);
+      border: 1px solid rgba(55,138,221,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #e8e6e0 0%, #378ADD 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--text2);
+      font-size: 15px;
+      max-width: 640px;
+      margin: 0 auto 2rem;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+    .hero-stat .label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .hero-stat .value { font-size: 26px; font-weight: 700; }
+    .hero-stat .value.gun { color: var(--gun); }
+    .hero-stat .value.spirit { color: var(--spirit); }
+    .hero-stat .value.neutral { color: var(--green); }
+
+    /* ── LAYOUT ─────────────────────────────────── */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+    .section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-num {
+      font-size: 11px; font-weight: 600; color: var(--gun);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+    }
+    h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+    p { color: var(--text2); margin-bottom: 1rem; }
+    p b, p strong { color: var(--text); }
+
+    /* ── CHART CARDS ─────────────────────────────── */
+    .chart-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .chart-card .chart-title {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .chart-card .chart-sub {
+      font-size: 11px; color: var(--text2); margin-bottom: 1rem;
+    }
+    .chart-wrap { position: relative; width: 100%; }
+
+    /* ── FORMULA BOX ─────────────────────────────── */
+    .formula-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gun);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      color: #a8c8f0;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .formula-box.spirit { border-left-color: var(--spirit); color: #f0a8c0; }
+
+    /* ── TABLE ───────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 13px; }
+    .data-table th {
+      background: var(--bg3); color: var(--text2);
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .data-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text2); }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .data-table td.highlight { color: var(--text); font-weight: 600; }
+    .data-table td.gun-win { color: var(--gun); font-weight: 700; }
+    .data-table td.spirit-win { color: var(--spirit); font-weight: 700; }
+    .data-table td.tier5 { color: var(--gun); font-weight: 700; background: rgba(55,138,221,0.06); }
+
+    /* ── CALLOUT ─────────────────────────────────── */
+    .callout {
+      background: rgba(55,138,221,0.07);
+      border: 1px solid rgba(55,138,221,0.2);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+    .callout.spirit { background: rgba(212,83,126,0.07); border-color: rgba(212,83,126,0.2); }
+    .callout.green { background: rgba(29,158,117,0.07); border-color: rgba(29,158,117,0.25); }
+    .callout b { color: var(--text); }
+
+    /* ── LEGEND ──────────────────────────────────── */
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; font-size: 12px; color: var(--text2); }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .ld { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+    .ld2 { width: 14px; height: 0; border-top: 2px dashed; display: inline-block; position: relative; top: 1px; }
+    .ldb { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+
+    /* ── PHASE GRID ──────────────────────────────── */
+    .phase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; margin: 1.5rem 0; }
+    .phase-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .phase-card .ph-time { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+    .phase-card .ph-win { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .phase-card .ph-gap { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .phase-card .ph-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
+
+    /* ── ITEM CARDS ──────────────────────────────── */
+    .item-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px; margin: 1.25rem 0; }
+    .item-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; border-top: 2px solid; }
+    .item-card.gun { border-top-color: var(--gun); }
+    .item-card.spirit { border-top-color: var(--spirit); }
+    .item-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .item-card h4.gun { color: var(--gun); }
+    .item-card h4.spirit { color: var(--spirit); }
+    .item-card p { font-size: 11px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+    .item-card .wr { font-size: 11px; font-weight: 600; color: var(--green); margin: 4px 0; }
+
+    /* ── ARGUMENT CARDS ──────────────────────────── */
+    .arg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px; margin: 1.25rem 0; }
+    .arg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; }
+    .arg-card .num { font-size: 28px; font-weight: 800; color: var(--gun); opacity: 0.3; line-height: 1; margin-bottom: 6px; }
+    .arg-card h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .arg-card p { font-size: 11px; color: var(--text2); line-height: 1.55; margin: 0; }
+
+    /* ── CONCLUSION ──────────────────────────────── */
+    .conclusion-box {
+      background: linear-gradient(135deg, rgba(55,138,221,0.08), rgba(29,158,117,0.06));
+      border: 1px solid rgba(55,138,221,0.25);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .conclusion-box h3 { color: var(--gun); margin-top: 0; }
+    .conclusion-box p { color: var(--text2); margin-bottom: 0.75rem; }
+    .opinion-box {
+      background: linear-gradient(135deg, rgba(29,158,117,0.08), rgba(55,138,221,0.05));
+      border: 1px solid rgba(29,158,117,0.25);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .opinion-box .op-label {
+      font-size: 11px; font-weight: 600; color: var(--green);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    .opinion-box h3 { color: var(--text); font-size: 1.2rem; margin: 0 0 1rem; }
+    .opinion-box p { color: var(--text2); margin-bottom: 0.85rem; }
+    .opinion-box p:last-child { margin-bottom: 0; }
+
+    /* ── VERDICT BANNER ──────────────────────────── */
+    .verdict {
+      background: linear-gradient(135deg, #0d1a2e, #0a1a14);
+      border: 1px solid rgba(55,138,221,0.2);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .verdict .vq { font-size: 1.5rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; }
+    .verdict .vs { font-size: 13px; color: var(--text2); max-width: 560px; margin: 0 auto; }
+
+    /* ── FOOTER ──────────────────────────────────── */
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 1.5rem; }
+      .container { padding: 0 1rem; }
+      .section { padding: 2rem 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO HEADER
+══════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="badge">Deadlock Balance Analysis - April 30 2026 Patch</div>
+  <h1>Gun is Not Undertuned:<br>A Mathematical Case for Compound Scaling</h1>
+  <p>A formula-driven, data-backed thesis on why gun damage dominates late-game Deadlock and why the community perception of gun being weak is a framing problem, not a balance problem.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="label">Crossover Point (avg)</div><div class="value neutral">~21 min</div></div>
+    <div class="hero-stat"><div class="label">Gun Lead @ 50 min (avg)</div><div class="value gun">+53%</div></div>
+    <div class="hero-stat"><div class="label">Spirit Lead @ 5 min (avg)</div><div class="value spirit">+40%</div></div>
+    <div class="hero-stat"><div class="label">Heroes Modeled</div><div class="value neutral">10</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 1: FORMULAS
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 1</div>
+    <h2>The Core Formulas</h2>
+    <p>Everything in this thesis derives from two formulas. One is multiplicative; one is additive. That single structural difference is why gun always wins given enough time.</p>
+
+    <h3>Gun Damage (Multiplicative)</h3>
+    <div class="formula-box">
+      DPS_gun = (B₀ + b·g) × (1 + WpnBonus%) × FR × (1 − BulletResist)
+    </div>
+<p>
+  Where:
+  B₀        = base bullet damage  (Haze 7.5, Vindicta 11.8)
+  b·g       = boon growth         (Haze +0.22/boon, Vindicta +0.36/boon)
+  WpnBonus% = weapon tier bonus   (9/12/15/18/46/55/70/85/100/115%)
+  FR        = fire rate            (Haze 4.0 shots/s, Vindicta 1.0)
+  BulletResist = 15% base enemy resistance
+</p>
+    <h3>Spirit Damage (Additive)</h3>
+    <div class="formula-box spirit">
+      DPS_spirit = Σ [ (A₀ + SP·r) × (1 − SpiritResist) ] / CD
+    </div>
+    <p>
+      Where:
+      A₀         = ability base damage
+      SP         = total spirit power (boons + items)
+      r          = SP scaling ratio   (Essence Bomb 0.9, Malice 0.7, L.Ball 0.55)
+      CD         = cooldown in seconds
+      SpiritResist = ~15% base enemy resistance
+    </p>
+
+    <div class="chart-card">
+      <div class="chart-title">Multiplicative vs. Additive Scaling - same soul investment, different output</div>
+      <div class="chart-sub">Demonstrates why gun % items compound while spirit flat items add linearly. Both start at the same base damage value.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Gun (multiplicative stacking)</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Spirit (additive flat)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="scaleTypeChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 2: WEAPON INVESTMENT CLIFF
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 2</div>
+    <h2>The Weapon Investment Cliff</h2>
+    <p>The April 30 patch created a non-linear tier curve with a critical inflection point at Tier 5. This single design decision is the engine of everything that follows.</p>
+
+    <table class="data-table">
+      <thead><tr><th>Tier</th><th>Bonus %</th><th>Soul Cost</th><th>Cumulative</th><th>Jump from prev.</th></tr></thead>
+      <tbody>
+      <tr><td>1</td><td>9%</td><td>2,000</td><td>2,000</td><td>-</td></tr>
+      <tr><td>2</td><td>12%</td><td>2,500</td><td>4,500</td><td>+3 pp</td></tr>
+      <tr><td>3</td><td>15%</td><td>2,500</td><td>7,000</td><td>+3 pp</td></tr>
+      <tr><td>4</td><td>18%</td><td>3,000</td><td>10,000</td><td>+3 pp</td></tr>
+      <tr><td class="tier5 highlight">5</td><td class="tier5">46%</td><td class="tier5">4,000</td><td class="tier5">14,000</td><td class="tier5">+28 pp ← cliff</td></tr>
+      <tr><td>6</td><td>55%</td><td>6,000</td><td>20,000</td><td>+9 pp</td></tr>
+      <tr><td>7</td><td>70%</td><td>7,000</td><td>27,000</td><td>+15 pp</td></tr>
+      <tr><td>8</td><td>85%</td><td>6,000</td><td>33,000</td><td>+15 pp</td></tr>
+      <tr><td>9</td><td>100%</td><td>5,000</td><td>38,000</td><td>+15 pp</td></tr>
+      <tr><td>10</td><td>115%</td><td>7,000</td><td>45,000</td><td>+15 pp</td></tr>
+      </tbody>
+    </table>
+
+    <div class="chart-card">
+      <div class="chart-title">Weapon Investment Bonus vs. Souls Spent</div>
+      <div class="chart-sub">The Tier 5 cliff (+28 pp) creates a non-linear inflection that drives the crossover. Spirit power grows linearly at ~1 SP per 150 souls.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Gun weapon bonus % (step function)</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Spirit power per soul (linear)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="tierChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 3: 50-MINUTE CROSSOVER
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 3</div>
+    <h2>The 50-Minute Crossover Analysis</h2>
+    <p>Mean DPS modeled across 5 gun meta heroes (Haze, Infernus, Wraith, Ivy, Vindicta) and 5 spirit meta heroes (Lady Geist, Seven, Mirage, Grey Talon, Kelvin). Spirit DPS uses the honest cycle-average formula (ability damage ÷ cooldown) including dead windows. Gun DPS is fully continuous (as long as you have bullets).</p>
+
+    <div class="callout">
+      <b>Hit probability applied:</b> Gun heroes achieve <b style="color:var(--gun)">89.4% effective accuracy</b> (0.7×1.0 body + 0.2×1.65 headshot + 0.1×0 miss). Spirit skillshots land at <b style="color:var(--spirit)">60% accuracy</b>. This 30-point gap compounds with fire rate.
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Mean DPS: Gun vs Spirit, 0–50 Minutes</div>
+      <div class="chart-sub">Shaded bands represent ±1σ across the 5-hero archetypes. The crossover occurs at ~minute 21.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Mean gun DPS</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Mean spirit cycle DPS</span>
+        <span><span class="ldb" style="background:rgba(55,138,221,0.18)"></span>Gun ±1σ</span>
+        <span><span class="ldb" style="background:rgba(212,83,126,0.14)"></span>Spirit ±1σ</span>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="mainChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Gun / Spirit Ratio Over Time (1.0 = parity)</div>
+      <div class="chart-sub">Below 1.0 = spirit leads. Crosses 1.0 at ~minute 21. Reaches ~1.53× by minute 50.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--green)"></span>Gun/Spirit ratio</span>
+        <span><span class="ld2" style="border-top-color:var(--muted)"></span>Parity (1.0)</span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="ratioChart"></canvas></div>
+    </div>
+
+    <table class="data-table">
+      <thead><tr><th>Time</th><th>Gun Mean DPS</th><th>Spirit Mean DPS</th><th>Winner</th><th>Gap</th></tr></thead>
+      <tbody>
+      <tr><td>5 min</td><td>~45</td><td>~75</td><td class="spirit-win">SPIRIT</td><td>−40%</td></tr>
+      <tr><td>10 min</td><td>~65</td><td>~95</td><td class="spirit-win">SPIRIT</td><td>−32%</td></tr>
+      <tr><td>15 min</td><td>~95</td><td>~115</td><td class="spirit-win">SPIRIT</td><td>−21%</td></tr>
+      <tr><td>20 min</td><td>~145</td><td>~155</td><td class="spirit-win">SPIRIT</td><td>−7%</td></tr>
+      <tr><td class="highlight">~21 min</td><td class="highlight">~165</td><td class="highlight">~165</td><td class="highlight">CROSSOVER</td><td class="highlight">0%</td></tr>
+      <tr><td>25 min</td><td>~210</td><td>~185</td><td class="gun-win">GUN</td><td>+13%</td></tr>
+      <tr><td>30 min</td><td>~295</td><td>~210</td><td class="gun-win">GUN</td><td>+40%</td></tr>
+      <tr><td>40 min</td><td>~425</td><td>~280</td><td class="gun-win">GUN</td><td>+52%</td></tr>
+      <tr><td>50 min</td><td>~520</td><td>~340</td><td class="gun-win">GUN</td><td>+53%</td></tr>
+      </tbody>
+    </table>
+
+    <div class="phase-grid">
+      <div class="phase-card">
+        <div class="ph-time">0 – 17 min</div>
+        <div class="ph-win" style="color:var(--spirit)">SPIRIT</div>
+        <div class="ph-gap" style="color:var(--spirit)">Leads by 40–50%</div>
+        <div class="ph-desc">Flat boon SP front-loaded. Haze 7.5 base vs Essence Bomb doing 88+ per cast. No items to compound yet.</div>
+      </div>
+      <div class="phase-card">
+        <div class="ph-time">17 – 25 min</div>
+        <div class="ph-win" style="color:var(--muted)">CONTESTED</div>
+        <div class="ph-gap" style="color:var(--muted)">Within ±10%</div>
+        <div class="ph-desc">Tier 5 cliff activating. Gun items accumulating. Fights decided by execution, not stats.</div>
+      </div>
+      <div class="phase-card">
+        <div class="ph-time">25 – 35 min</div>
+        <div class="ph-win" style="color:var(--gun)">GUN</div>
+        <div class="ph-gap" style="color:var(--gun)">Leads by 15–40%</div>
+        <div class="ph-desc">Compound tiers 5–7 stacking. Ricochet × Lucky Shot proc rates triple. Spirit flat additions become noise.</div>
+      </div>
+      <div class="phase-card">
+        <div class="ph-time">35 – 50 min</div>
+        <div class="ph-win" style="color:var(--gun)">GUN</div>
+        <div class="ph-gap" style="color:var(--gun)">Leads by 50–55%</div>
+        <div class="ph-desc">Tiers 8–10 (85–115%). Siphon healing 3k+ per fight. Spirit cooldown dead time severely punished.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 4: INDIVIDUAL HERO TRACES
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 4</div>
+    <h2>Individual Hero Traces (Old Meta - Suggestive)</h2>
+    <p>Each meta hero modeled individually. Gun heroes are solid lines; spirit heroes are dashed. The divergence pattern is consistent across all 10 heroes.</p>
+
+    <div class="chart-card">
+      <div class="chart-title">All 10 Meta Hero DPS - Individual Traces, 0–50 min</div>
+      <div class="chart-sub">Gun heroes start below spirit but all cross over by ~minute 25. Infernus is highest due to Afterburn DoT stacking on top of bullet DPS.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:#378ADD"></span>Haze</span>
+        <span><span class="ld" style="background:#1D9E75"></span>Infernus</span>
+        <span><span class="ld" style="background:#85B7EB"></span>Wraith</span>
+        <span><span class="ld" style="background:#5DCAA5"></span>Ivy</span>
+        <span><span class="ld" style="background:#0C447C"></span>Vindicta</span>
+        <span><span class="ld2" style="border-top-color:#D4537E"></span>Lady Geist</span>
+        <span><span class="ld2" style="border-top-color:#BA7517"></span>Seven</span>
+        <span><span class="ld2" style="border-top-color:#D85A30"></span>Mirage</span>
+        <span><span class="ld2" style="border-top-color:#993556"></span>Grey Talon</span>
+        <span><span class="ld2" style="border-top-color:#888780"></span>Kelvin</span>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="indChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Vindicta vs Grey Talon: Compound Kill Stacks vs Hybrid Scaling</div>
+      <div class="chart-sub">Vindicta's Assassinate (+6% weapon damage per kill) creates a superlinear curve once kills accumulate. Grey Talon hybrid builds peak earlier due to bullet damage scaling with SP.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Vindicta (gun stacks)</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Grey Talon (spirit build)</span>
+        <span><span class="ld" style="background:var(--green)"></span>Grey Talon (gun build)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="snipersChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Haze vs Lady Geist: The Prototypical Gun vs Spirit Matchup</div>
+      <div class="chart-sub">Haze's 4.0 FR means every % item multiplies 4 times per second. Lady Geist's high base (20.7) dominates early; Haze with Fixation stacks crosses earlier than base Haze.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Haze (base gun)</span>
+        <span><span class="ld" style="background:var(--orange)"></span>Haze + Fixation stacks</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Lady Geist (spirit build)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="hazeGeistChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 5 - HIT PROBABILITY
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 5</div>
+    <h2>Hit Probability - Normal Distribution Model</h2>
+    <p>Gun and spirit accuracy follow different distributions. Gun benefits from a continuous accuracy spectrum; spirit skillshots are binary (hit or miss). This asymmetry compounds with fire rate.</p>
+
+    <div class="chart-card">
+      <div class="chart-title">Hit Probability Distribution - Gun vs Spirit Accuracy</div>
+      <div class="chart-sub">Gun peaks at 89.4% effective accuracy (weighted by body shots + headshots). Spirit skillshots peak at 60%. The right tail of gun's distribution represents skilled players like Renon or Hoot (or aimbot users lol).</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Gun accuracy (89.4% mean, σ=0.12)</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Spirit accuracy (60% mean, σ=0.18)</span>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="distChart"></canvas></div>
+    </div>
+
+    <div class="callout green">
+      <b>Expected value calculation:</b><br>
+      Gun EV = 0.70 × 1.00 (body) + 0.20 × 1.65 (headshot) + 0.10 × 0.00 (miss) = <b>0.894</b><br>
+      Spirit EV = 0.60 × 1.00 (hit) + 0.40 × 0.00 (miss) = <b>0.600</b><br><br>
+      Over a 30-second fight at 4.0 FR: Gun fires 120 bullets at 89.4% = <b>~107 effective hits</b>. Spirit fires 3–4 abilities at 60% = <b>~2 effective hits</b>. The frequency gap is what makes gun's sustained threat irreversible, note that gun is way more skill expressive and this is an optimal scenario, we can only imagine hipothetical scenarios for this kind of situation, the data was based on an approximity to Eternus six average performance.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 6 - ITEM COMPARISON
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 6</div>
+    <h2>Best Items: Gun vs Spirit (Data from 05/08/26)</h2>
+
+    <div class="chart-card">
+      <div class="chart-title">Item Win Rate Comparison: Top Gun Items vs Top Spirit Items</div>
+      <div class="chart-sub">Spirit items have slightly higher individual win rates but gun items have tighter synergies that multiply off each other. Spirit items run on independent cooldowns.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Gun items</span>
+        <span><span class="ld" style="background:var(--spirit)"></span>Spirit items</span>
+      </div>
+      <div class="chart-wrap" style="height:280px"><canvas id="itemWRChart"></canvas></div>
+    </div>
+
+    <h3>Top Gun Items</h3>
+    <div class="item-grid">
+      <div class="item-card gun">
+        <h4 class="gun">Ricochet (T4, 6.4k)</h4>
+        <div class="wr">78.8% pick · 53.8% win</div>
+        <p>+18% FR. Bounces to 2 targets at 65% dmg. <b>All on-hit procs apply to every bounce.</b> Force multiplier that makes every other gun item 3× as effective.</p>
+      </div>
+      <div class="item-card gun">
+        <h4 class="gun">Lucky Shot (T4, 6.4k)</h4>
+        <div class="wr">85.8% pick · 60.6% win</div>
+        <p>35% proc chance → empowered bullet scales with weapon%. At 4.0 FR = 1.4 procs/sec base. With Ricochet = 4.2 procs/sec across 3 targets.</p>
+      </div>
+      <div class="item-card gun">
+        <h4 class="gun">Crippling Headshot (T4, 6.4k)</h4>
+        <div class="wr">86.1% pick · 58.1% win</div>
+        <p>Stacking −2% bullet resist debuff per hit, capped at 12 stacks. With Ricochet, the cap is reached in ~20 seconds instead of 60.</p>
+      </div>
+      <div class="item-card gun">
+        <h4 class="gun">Toxic Bullets (T3, 3.2k)</h4>
+        <div class="wr">79.8% pick</div>
+        <p>2.5% max HP bleed per hit. Scales with enemy HP, not your stats. With Ricochet = 225 max HP damage per bullet across 3 targets.</p>
+      </div>
+      <div class="item-card gun">
+        <h4 class="gun">Siphon Bullets (T4, 6.4k)</h4>
+        <div class="wr">Core sustain</div>
+        <p>45 max HP steal per bullet, 0.8s freq cap. At 4.0 FR → 90–135 HP drain/sec. Over 30s fight: Haze heals 2,700–4,050 HP automatically.</p>
+      </div>
+      <div class="item-card gun">
+        <h4 class="gun">Spiritual Overflow (T4, 6.4k)</h4>
+        <div class="wr">60.3% win</div>
+        <p>Weapon damage scales with spirit power. Bridges both paths. Appears in 60%+ of high-win gun builds, meta has evolved past "pure gun."</p>
+      </div>
+    </div>
+
+    <h3>Top Spirit Items</h3>
+    <div class="item-grid">
+      <div class="item-card spirit">
+        <h4 class="spirit">Spirit Burn (T4, 6.4k)</h4>
+        <div class="wr">79.3% pick · 58.0% win</div>
+        <p>+18% SP + ability hits amp team damage vs enemies by 12%. Strong team-fight multiplier; runs on cooldown, not continuous.</p>
+      </div>
+      <div class="item-card spirit">
+        <h4 class="spirit">Mystic Reverb (T4, 6.4k)</h4>
+        <div class="wr">79.2% pick · 57.0% win</div>
+        <p>Imbue ability with lifesteal + 50% delayed AoE reverb. Adds sustain spirit otherwise lacks. Spirit's answer to Siphon Bullets, but gated by cooldowns.</p>
+      </div>
+      <div class="item-card spirit">
+        <h4 class="spirit">Boundless Spirit (T4, 6.4k)</h4>
+        <div class="wr">69.4% pick · 52.7% win</div>
+        <p>+12% SP + 0.5s CD reduction on hit. Strong early, diminishes relatively as fights go longer and gun's continuous DPS accumulates.</p>
+      </div>
+      <div class="item-card spirit">
+        <h4 class="spirit">Escalating Exposure (T4, 6.4k)</h4>
+        <div class="wr">55%+ win · trending up</div>
+        <p>+1% damage taken per stack, capped 12. Scales with hit frequency, the only spirit item that benefits from sustained damage. Gun heroes abuse this hardest via Ricochet.</p>
+      </div>
+      <div class="item-card spirit">
+        <h4 class="spirit">Witchmail (T3, 3.2k)</h4>
+        <div class="wr">Core defensive</div>
+        <p>−20% bullet damage taken, reflect 20% back. Spirit heroes' survivability patch against gun pressure converts gun trades into self-harm for the attacker.</p>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Ricochet Amplification Effect: DPS Multiplier per Item Combination</div>
+      <div class="chart-sub">How Ricochet multiplies the effective output of each other gun item compared to without it.</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>With Ricochet</span>
+        <span><span class="ld2" style="border-top-color:var(--muted)"></span>Without Ricochet (baseline)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="ricChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 7 - SIX ARGUMENTS
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 7</div>
+    <h2>Why Gun is Not Undertuned: Six Arguments</h2>
+
+    <div class="arg-grid">
+      <div class="arg-card"><div class="num">01</div><h4>Multiplicative Beats Additive</h4><p>Any exponential function overtakes any linear function given enough input. Gun's Tier 5 cliff (18%→46%) is explicitly non-linear. The crossover is not a bug, it's what exponential tiers do.</p></div>
+      <div class="arg-card"><div class="num">02</div><h4>Compound Interest at High FR</h4><p>Lucky Shot (35% proc) on Haze = 1.4 procs/sec. On Lady Geist ≈ 0.4 procs/min. Gun gets <b>210×</b> more Lucky Shot procs per minute. Frequency compounds the damage advantage.</p></div>
+      <div class="arg-card"><div class="num">03</div><h4>Free Headshot Multiplier</h4><p>20% of shots land as headshots at 1.65× with zero item investment. At 4.0 FR: ~3.3 headshots/sec = +21.5% effective baseline DPS that spirit simply doesn't have.</p></div>
+      <div class="arg-card"><div class="num">04</div><h4>Siphon Scales MELTS</h4><p>Siphon drains 2.5% max HP per bullet with 1.2s CD. For long fights siphon bullets really makes a big difference that spirit simply can't beat. Spirit sustain is cooldown-gated. Siphon is constant and never stops.</p></div>
+      <div class="arg-card"><div class="num">05</div><h4>Ricochet Triples Proc Rate</h4><p>All on-hit procs fire on each bounce target. Crippling reaches 12-stack cap 3× faster. Toxic applies to 3 targets simultaneously. No spirit item multiplies all other items this way.</p></div>
+      <div class="arg-card"><div class="num">06</div><h4>Spirit's Dead Time Tax</h4><p>A 10-second CD hero deals zero ability damage 90% of the time. Gun deals damage 100% of the time. Over 30 seconds: gun fires 120 bullets, spirit makes 3 casts. Frequency wins.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PART 8 - PERCEPTION PROBLEM
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Part 8</div>
+    <h2>The Perception Problem</h2>
+
+    <div class="chart-card">
+      <div class="chart-title">Why Gun Feels Weak, Perceived vs Actual Damage by Phase</div>
+      <div class="chart-sub">The perception gap: spirit's burst is attributable (one ability, one death), while gun's sustained damage is distributed across hundreds of bullets and feels like "chip damage."</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--gun)"></span>Gun actual DPS</span>
+        <span><span class="ld2" style="border-top-color:var(--spirit)"></span>Spirit actual DPS</span>
+        <span><span class="ld" style="background:rgba(55,138,221,0.3)"></span>Gun perceived impact</span>
+        <span><span class="ld" style="background:rgba(212,83,126,0.5)"></span>Spirit perceived impact</span>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="perceptionChart"></canvas></div>
+    </div>
+
+    <div class="callout">
+      <b>If gun were genuinely undertuned, we would see:</b> sub-50% win rates on all gun heroes (we see 48–54%) · win-rate curves that never cross spirit's (we see clear crossovers at 20–25 min) · gun items losing pick rate (we see 78–86% pick rates). None of these are true. Gun is scaling correctly, it's just later than spirit.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       CONCLUSION
+  ══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-num">Conclusion</div>
+    <h2>Gun is Not Undertuned. It is Misunderstood.</h2>
+
+    <div class="conclusion-box">
+      <h3>The Mathematical Summary</h3>
+      <p>Gun scales multiplicatively, spirit scales additively. <b>Multiplicative always wins given sufficient time.</b> The April 30 patch's non-linear tier curve specifically the +28pp jump at Tier 5 creates a compounding cliff at ~17–20 minutes of farm. Past that cliff, weapon investment tiers stack on top of each other, creating exponential DPS growth that no additive SP formula can match.</p>
+      <p>Spirit's dominance from 0–20 minutes is real, intended, and mathematically explained: flat boon SP is free, immediate, and strong relative to a small base. Gun's dominance from minute 25 onward is equally real, equally intended, and equally explained: compound tiers amplify an increasingly large base with zero diminishing returns on the multipliers themselves.</p>
+      <p>The crossover at minute 21–23 is not a balance bug. It is the designed balance point. The game is balanced around it.</p>
+    </div>
+
+    <!-- PERSONAL OPINION -->
+    <div class="opinion-box">
+      <div class="op-label">Personal Opinion</div>
+      <h3>The Community is Fighting the Wrong Fight</h3>
+      <p>After modeling every formula, running 50 simulated minutes across 10 heroes, and examining the data from every angle, my honest take is this: <b>the "gun is undertuned" argument is not a balance argument, it's a patience argument and it's totally understandable why some high level players like Oses think that spirit is way better than gun, it's simply because of the snowball and early dominance from it.</b> Players don't get to wait 25 minutes to feel powerful on every game. That's a completely valid feeling, but it's a different problem than balance.</p>
+      <p>Spirit heroes feel oppressive because their power is immediate, visible, and attributable. You die to Geist's bomb or Holiday's Barrel and you know exactly why. Gun heroes feel weak because their power is distributed, delayed, and invisible. You're being killed by a thousand cuts and you don't realize until you're dead. This creates a massive perception asymmetry that has nothing to do with the underlying math in some cases.</p>
+      <p>The most underappreciated thing in this entire debate is <b>Ricochet's design.</b> Ricochet is the answer to the single target problem, not because it makes gun strong early (it doesn't, really), but because it converts gun from "I need to kill this one guy" to "I am a team-fight weapon the moment I finish this item." Ricochet bought at minute 17–18 changes the feel of the whole game, although it's usually not optimal because you lose a lot of stats (this is honestly the whole dilemma of gun that spirit doesn't face usually).</p>
+      <p>My actual opinion on balance: <b>gun doesn't need a buff. Spirit needs a nerf to its laning phase and items that give flat spirit while also investing on durability on some items specifically, this is unfair because you can overcome gun's limits of potential per soul (some items can help you go even further on spirit damage while investing on health, this is why shiv's a big design problem on high levels).</b> The first 12 minutes of Deadlock are too one-sided. Not because spirit scales too well overall, it doesn't, the data shows that clearly, but because having 87 free damage on a boon-powered ability at minute 5 with zero investment creates lane situations that feel predetermined. A small adjustment to how fast spirit power accrues from boons (not from items) in the first 10 minutes would smooth the early curve without touching late-game spirit at all, and it would fix the perception problem more effectively than any gun buff ever could.</p>
+      <p>The game is fundamentally well-designed. The two damage philosophies, burst vs sustained, front-loaded vs back-loaded, additive vs multiplicative, create genuinely interesting strategic tension. <b>The problem is not the balance. The problem is that the average game ends at minute 25–30, right at the crossover, before gun ever gets to prove its dominance.</b> Fix the game length, or give gun players better tools to survive to that point, and the "gun is undertuned" discourse disappears entirely.</p>
+      <p><b>Gun carries hard. It just needs 25 minutes, and some games don't give it that.</b></p>
+    </div>
+
+<footer>
+  <p>Sources: Deadlock Wiki (deadlock.wiki) · MetaBot.GG (data as of May 8, 2026) · In-game formula testing · April 30 2026 patch notes</p>
+  <p>Made by Kyotin, feel free to add me and discuss, Discord: buzuca1337, Steam friend ID: 264143532, Twitter: kyotodeadlock</p>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════
+     ALL CHART JS
+══════════════════════════════════════════════════════ -->
+<script>
+  Chart.defaults.color = '#9b9891';
+  Chart.defaults.borderColor = '#2e2e32';
+  Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
+  Chart.defaults.font.size = 11;
+
+  const MINS = Array.from({length:51},(_,i)=>i);
+
+  // ── Soul accumulation ───────────────────────────────
+  function cumSouls(m){
+    let s=0;
+    for(let i=0;i<m;i++){
+      let r=i<4?250+i*40:i<10?400+i*15:i<18?550+(i-10)*35:i<30?840+(i-18)*20:1080+(i-30)*8;
+      s+=r;
+    }
+    return s;
+  }
+  const SOULS=MINS.map(m=>cumSouls(m));
+
+  // ── Boon from souls (Apr 30) ────────────────────────
+  function boonFromSouls(s){
+    if(s<1650)return 0;
+    if(s<13200)return Math.min(8,s/1650);
+    let b=8,rem=s-13200;
+    if(rem>=1300){b=9;rem-=1300;}
+    b+=Math.min(26,Math.floor(rem/1500));
+    return Math.min(35,b);
+  }
+  const BOONS=MINS.map(m=>boonFromSouls(SOULS[m]));
+
+  // ── Weapon bonus (Apr 30 tier curve) ───────────────
+  const WPN_PCT=[0,9,12,15,18,46,55,70,85,100,115];
+  const TIER_SOUL=[0,2000,4500,7000,10000,14000,20000,27000,33000,38000,45000];
+  function getWpnBonus(sg){
+    let t=0;
+    for(let i=1;i<TIER_SOUL.length;i++){if(sg>=TIER_SOUL[i])t=i;else break;}
+    return WPN_PCT[t]/100;
+  }
+
+  // ── Gun hero DPS ────────────────────────────────────
+  function gunDPS(base,bg,fr,hb,m){
+    const b=BOONS[m],bd=base+b*bg,wp=getWpnBonus(SOULS[m]*0.45),h=hb(m,b);
+    return bd*(1+wp+h)*0.85*fr;
+  }
+  function infernusTotal(m){
+    const b=BOONS[m],sp=b*1.0+(SOULS[m]*0.15/1000)*10,wp=getWpnBonus(SOULS[m]*0.45),bd=3.5+b*0.08;
+    return bd*(1+wp)*0.85*9.52+(14+sp*0.66)*0.85;
+  }
+
+  const gunHeroes=[
+    {name:'Haze',    base:7.5,  bg:0.22,  fr:4.0, hb:(m,b)=>Math.min(b*0.8,10)*0.018},
+    {name:'Wraith',  base:5.4,  bg:0.155, fr:3.3, hb:()=>0},
+    {name:'Ivy',     base:5.0,  bg:0.11,  fr:3.8, hb:(m,b)=>BOONS[m]*0.0015},
+    {name:'Vindicta',base:11.8, bg:0.36,  fr:1.0, hb:(m,b)=>Math.min(b*0.55,20)*0.06},
+  ];
+
+  const gunTraces=[
+    MINS.map(m=>Math.round(infernusTotal(m)*10)/10),
+    ...gunHeroes.map(h=>MINS.map(m=>Math.round(gunDPS(h.base,h.bg,h.fr,h.hb,m)*10)/10))
+  ];
+  const gunNames=['Infernus','Haze','Wraith','Ivy','Vindicta'];
+
+  // ── Spirit hero DPS ────────────────────────────────
+  const spiritHeroes=[
+    {name:'Lady Geist',spPerBoon:1.1,spPer1k:16,gunBase:20.7,gunBg:1.0,gunFr:0.9,
+      abilities:[{base:80,ratio:0.9,cd:8},{base:55,ratio:0.7,cd:12}]},
+    {name:'Seven',spPerBoon:1.2,spPer1k:18,gunBase:8.0,gunBg:0.25,gunFr:1.8,
+      abilities:[{base:60,ratio:0.55,cd:9},{base:40,ratio:0.40,cd:8},{base:30,ratio:0.30,cd:6}]},
+    {name:'Mirage',spPerBoon:1.0,spPer1k:14,gunBase:5.5,gunBg:0.14,gunFr:2.2,
+      abilities:[{base:70,ratio:0.35,cd:9},{base:50,ratio:0.28,cd:15}]},
+    {name:'Grey Talon',spPerBoon:1.6,spPer1k:12,gunBase:14.0,gunBg:1.8,gunFr:0.65,
+      abilities:[{base:100,ratio:0.9,cd:14},{base:45,ratio:0.5,cd:10}]},
+    {name:'Kelvin',spPerBoon:1.1,spPer1k:20,gunBase:6.0,gunBg:0.18,gunFr:1.5,
+      abilities:[{base:75,ratio:0.80,cd:8},{base:40,ratio:0.45,cd:10}]},
+  ];
+
+  function spiritCycleDPS(h,m){
+    const b=BOONS[m],sp=b*h.spPerBoon+(SOULS[m]*0.45/1000)*h.spPer1k;
+    const abilDPS=h.abilities.reduce((s,a)=>s+(a.base+sp*a.ratio)*0.85/a.cd,0);
+    let bd=h.gunBase+b*h.gunBg;
+    if(h.name==='Grey Talon')bd+=sp*0.08;
+    return abilDPS+bd*0.85*h.gunFr;
+  }
+  const spiritTraces=spiritHeroes.map(h=>MINS.map(m=>Math.round(spiritCycleDPS(h,m)*10)/10));
+  const spiritNames=spiritHeroes.map(h=>h.name);
+
+  // ── Stats ───────────────────────────────────────────
+  function meanStd(arrs,mi){
+    const v=arrs.map(a=>a[mi]),n=v.length,mean=v.reduce((a,b)=>a+b,0)/n;
+    return{mean,std:Math.sqrt(v.reduce((a,b)=>a+(b-mean)**2,0)/n)};
+  }
+  const gStats=MINS.map(m=>meanStd(gunTraces,m));
+  const sStats=MINS.map(m=>meanStd(spiritTraces,m));
+  const gMean=gStats.map(s=>Math.round(s.mean));
+  const sMean=sStats.map(s=>Math.round(s.mean));
+  const gHi=gStats.map(s=>Math.round(s.mean+s.std));
+  const gLo=gStats.map(s=>Math.round(Math.max(0,s.mean-s.std)));
+  const sHi=sStats.map(s=>Math.round(s.mean+s.std));
+  const sLo=sStats.map(s=>Math.round(Math.max(0,s.mean-s.std)));
+  const ratio=MINS.map(m=>sMean[m]>0?Math.round(gMean[m]/sMean[m]*100)/100:1);
+
+  // ─────────────────────────────────────────────────────
+  // CHART 1: Scale type (mult vs additive)
+  // ─────────────────────────────────────────────────────
+  {
+    const steps=Array.from({length:11},(_,i)=>i);
+    const mult=steps.map(i=>Math.round(20*Math.pow(1.09,i)));
+    const additive=steps.map(i=>Math.round(20+i*8));
+    new Chart(document.getElementById('scaleTypeChart'),{
+      type:'line',data:{labels:steps.map(i=>'Item '+i),datasets:[
+          {label:'Gun (mult)',data:mult,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2.5,pointRadius:3,tension:0.3},
+          {label:'Spirit (add)',data:additive,borderColor:'#D4537E',backgroundColor:'transparent',borderDash:[5,4],borderWidth:2.5,pointRadius:3,tension:0.3}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+' dmg'}}},
+        scales:{x:{title:{display:true,text:'Items purchased'}},y:{title:{display:true,text:'Total damage output'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 2: Tier curve
+  // ─────────────────────────────────────────────────────
+  {
+    const ts=[0,2000,4500,7000,10000,14000,20000,27000,33000,38000,45000];
+    const bonus=[0,9,12,15,18,46,55,70,85,100,115];
+    const spiritLine=ts.map(s=>Math.round(s/150));
+    new Chart(document.getElementById('tierChart'),{
+      type:'line',data:{labels:ts.map(s=>(s/1000).toFixed(1)+'k'),datasets:[
+          {label:'Weapon bonus %',data:bonus,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',fill:true,borderWidth:2.5,pointRadius:4,tension:0,stepped:true},
+          {label:'Spirit power',data:spiritLine,borderColor:'#D4537E',backgroundColor:'transparent',borderDash:[5,4],borderWidth:2,pointRadius:2,tension:0.2}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+(ctx.datasetIndex===0?'%':' SP')}}},
+        scales:{x:{title:{display:true,text:'Souls spent in weapon investment'}},y:{title:{display:true,text:'Bonus %  /  Spirit Power'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 3: Main mean chart with bands
+  // ─────────────────────────────────────────────────────
+  new Chart(document.getElementById('mainChart'),{
+    type:'line',
+    data:{labels:MINS,datasets:[
+        {data:gHi,borderColor:'transparent',backgroundColor:'rgba(55,138,221,0.12)',fill:'+1',pointRadius:0,tension:0.4},
+        {data:gLo,borderColor:'transparent',backgroundColor:'transparent',fill:false,pointRadius:0,tension:0.4},
+        {data:sHi,borderColor:'transparent',backgroundColor:'rgba(212,83,126,0.10)',fill:'+1',pointRadius:0,tension:0.4},
+        {data:sLo,borderColor:'transparent',backgroundColor:'transparent',fill:false,pointRadius:0,tension:0.4},
+        {label:'Mean gun DPS',data:gMean,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,tension:0.4},
+        {label:'Mean spirit DPS',data:sMean,borderColor:'#D4537E',backgroundColor:'transparent',borderDash:[6,4],borderWidth:2.5,pointRadius:0,tension:0.4},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{filter:i=>i.dataset.borderColor!=='transparent',callbacks:{label:ctx=>ctx.dataset.label+': '+Math.round(ctx.parsed.y)}}},
+      scales:{x:{title:{display:true,text:'Game time (minutes)'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'Effective DPS'},beginAtZero:true}}}
+  });
+
+  // ─────────────────────────────────────────────────────
+  // CHART 4: Ratio
+  // ─────────────────────────────────────────────────────
+  new Chart(document.getElementById('ratioChart'),{
+    type:'line',
+    data:{labels:MINS,datasets:[
+        {label:'Gun/Spirit',data:ratio,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.06)',fill:true,borderWidth:2.5,pointRadius:0,tension:0.4},
+        {label:'Parity',data:MINS.map(()=>1),borderColor:'#888780',backgroundColor:'transparent',borderDash:[4,3],borderWidth:1,pointRadius:0}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+'×'}}},
+      scales:{x:{title:{display:true,text:'Game time (minutes)'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'Ratio (1.0 = parity)'},min:0.3,max:1.8}}}
+  });
+
+  // ─────────────────────────────────────────────────────
+  // CHART 5: Individual traces
+  // ─────────────────────────────────────────────────────
+  {
+    const colors={Infernus:'#1D9E75',Haze:'#378ADD',Wraith:'#85B7EB',Ivy:'#5DCAA5',Vindicta:'#0C447C',
+      'Lady Geist':'#D4537E',Seven:'#BA7517',Mirage:'#D85A30','Grey Talon':'#993556',Kelvin:'#888780'};
+    const spiritSet=new Set(spiritNames);
+    const datasets=[
+      ...gunNames.map((n,i)=>({label:n,data:gunTraces[i],borderColor:colors[n],backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.4,borderDash:[]})),
+      ...spiritNames.map((n,i)=>({label:n,data:spiritTraces[i],borderColor:colors[n],backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.4,borderDash:[5,3]}))
+    ];
+    new Chart(document.getElementById('indChart'),{
+      type:'line',data:{labels:MINS,datasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+Math.round(ctx.parsed.y)}}},
+        scales:{x:{title:{display:true,text:'Game time (minutes)'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'DPS'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 6: Vindicta vs Grey Talon
+  // ─────────────────────────────────────────────────────
+  {
+    const vinDPS=MINS.map(m=>{
+      const b=BOONS[m],bd=11.8+b*0.36,kills=Math.min(b*0.55,20)*0.06,wp=getWpnBonus(SOULS[m]*0.45);
+      return Math.round(bd*(1+wp+kills)*0.85*1.0);
+    });
+    const gtSpirit=MINS.map(m=>{
+      const b=BOONS[m],sp=b*1.6+(SOULS[m]*0.45/1000)*12;
+      const bd=14+b*1.8+sp*0.08;
+      const shot=bd*0.85*0.65;
+      const charged=(100+sp*0.9)*0.85/14+(45+sp*0.5)*0.85/10;
+      return Math.round(shot+charged);
+    });
+    const gtGun=MINS.map(m=>{
+      const b=BOONS[m],sp=b*1.6,bd=14+b*1.8+sp*0.08,wp=getWpnBonus(SOULS[m]*0.45);
+      return Math.round(bd*(1+wp)*0.85*0.65+(100+sp*0.5)*0.85/14);
+    });
+    new Chart(document.getElementById('snipersChart'),{
+      type:'line',data:{labels:MINS,datasets:[
+          {label:'Vindicta',data:vinDPS,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,tension:0.4},
+          {label:'GT spirit',data:gtSpirit,borderColor:'#D4537E',backgroundColor:'transparent',borderDash:[5,4],borderWidth:2,pointRadius:0,tension:0.4},
+          {label:'GT gun',data:gtGun,borderColor:'#1D9E75',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.4}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y}}},
+        scales:{x:{title:{display:true,text:'Game time (minutes)'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'DPS'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 7: Haze vs Lady Geist
+  // ─────────────────────────────────────────────────────
+  {
+    const hazeBase=MINS.map(m=>{
+      const b=BOONS[m],bd=7.5+b*0.22,wp=getWpnBonus(SOULS[m]*0.45);
+      return Math.round(bd*(1+wp)*0.85*4.0);
+    });
+    const hazeFix=MINS.map(m=>{
+      const b=BOONS[m],bd=7.5+b*0.22,fix=Math.min(b*0.8,10)*0.018,wp=getWpnBonus(SOULS[m]*0.45);
+      return Math.round(bd*(1+wp+fix)*0.85*4.0);
+    });
+    const geistDPS=MINS.map(m=>{
+      const b=BOONS[m],sp=b*1.1+(SOULS[m]*0.45/1000)*16,bd=20.7+b*1.0;
+      return Math.round((80+sp*0.9)*0.85/8+(55+sp*0.7)*0.85/12+bd*0.85*0.9);
+    });
+    new Chart(document.getElementById('hazeGeistChart'),{
+      type:'line',data:{labels:MINS,datasets:[
+          {label:'Haze base',data:hazeBase,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,tension:0.4},
+          {label:'Haze+Fixation',data:hazeFix,borderColor:'#D85A30',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.4},
+          {label:'Lady Geist',data:geistDPS,borderColor:'#D4537E',backgroundColor:'transparent',borderDash:[5,4],borderWidth:2.5,pointRadius:0,tension:0.4}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y}}},
+        scales:{x:{title:{display:true,text:'Game time (minutes)'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'DPS'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 8: Normal distribution
+  // ─────────────────────────────────────────────────────
+  {
+    const norm=(x,mu,sig)=>(1/(sig*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-mu)/sig)**2);
+    const xs=Array.from({length:101},(_,i)=>i/100);
+    const g=xs.map(x=>norm(x,0.894,0.12));
+    const s=xs.map(x=>norm(x,0.60,0.18));
+    const peak=Math.max(...g,...s);
+    new Chart(document.getElementById('distChart'),{
+      type:'line',data:{labels:xs.map(x=>(x*100).toFixed(0)+'%'),datasets:[
+          {label:'Gun accuracy',data:g.map(y=>y/peak*100),borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',fill:true,borderWidth:2.5,pointRadius:0,tension:0.4},
+          {label:'Spirit accuracy',data:s.map(y=>y/peak*100),borderColor:'#D4537E',backgroundColor:'rgba(212,83,126,0.08)',fill:true,borderDash:[5,4],borderWidth:2.5,pointRadius:0,tension:0.4}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(1)+'%'}}},
+        scales:{x:{title:{display:true,text:'Accuracy / hit rate'},ticks:{maxTicksLimit:11}},y:{title:{display:true,text:'Probability density (normalized)'},display:false}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 9: Item win rates
+  // ─────────────────────────────────────────────────────
+  {
+    const items=['Lucky Shot','Crippling HS','Spirit Burn','Mystic Reverb','Toxic Bullets','Ricochet','Boundless Spirit','Spiritual Overflow'];
+    const wrs=[60.6,58.1,58.0,57.0,null,53.8,52.7,60.3];
+    const clrs=['#378ADD','#378ADD','#D4537E','#D4537E','#378ADD','#378ADD','#D4537E','#378ADD'];
+    new Chart(document.getElementById('itemWRChart'),{
+      type:'bar',
+      data:{labels:items,datasets:[{
+          label:'Win Rate %',
+          data:wrs,
+          backgroundColor:clrs.map(c=>c+'99'),
+          borderColor:clrs,
+          borderWidth:1.5,
+          borderRadius:4
+        }]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Win rate: '+(ctx.parsed.y||'N/A')+'%'}}},
+        scales:{x:{ticks:{maxRotation:30}},y:{title:{display:true,text:'Win rate %'},min:50,max:62}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 10: Ricochet amplification
+  // ─────────────────────────────────────────────────────
+  {
+    const items=['Lucky Shot\nprocs/sec','Crippling stack\nrate (×/sec)','Toxic HP dmg\nper bullet','Siphon heal\neffective/sec','AoE targets\nhit per bullet'];
+    const base=[1.4,0.4,75,90,1];
+    const withRic=[4.2,1.2,225,270,3];
+    new Chart(document.getElementById('ricChart'),{
+      type:'bar',
+      data:{labels:['Lucky Shot procs/s','Crippling stacks/s','Toxic HP dmg/bullet','Siphon heal/s','AoE targets'],
+        datasets:[
+          {label:'With Ricochet',data:withRic,backgroundColor:'rgba(55,138,221,0.7)',borderColor:'#378ADD',borderWidth:1.5,borderRadius:4},
+          {label:'Without Ricochet',data:base,backgroundColor:'rgba(136,135,128,0.3)',borderColor:'#888780',borderWidth:1.5,borderRadius:4}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(ctx.dataset.label||'')+': '+ctx.parsed.y}}},
+        scales:{x:{},y:{title:{display:true,text:'Effective value per second / per bullet'},beginAtZero:true}}}
+    });
+  }
+
+  // ─────────────────────────────────────────────────────
+  // CHART 11: Perception chart
+  // ─────────────────────────────────────────────────────
+  {
+    const phases=['Laning\n0–10m','Early mid\n10–15m','Mid\n15–22m','Late mid\n22–35m','Late\n35–50m'];
+    const gunActual=[35,80,140,310,470];
+    const spiritActual=[80,110,155,200,310];
+    const gunPerceived=[15,30,80,200,380];
+    const spiritPerceived=[110,155,220,260,380];
+    new Chart(document.getElementById('perceptionChart'),{
+      type:'bar',
+      data:{labels:phases,datasets:[
+          {label:'Gun actual DPS',data:gunActual,backgroundColor:'rgba(55,138,221,0.8)',borderColor:'#378ADD',borderWidth:1.5,borderRadius:4},
+          {label:'Spirit actual DPS',data:spiritActual,backgroundColor:'rgba(212,83,126,0.8)',borderColor:'#D4537E',borderWidth:1.5,borderRadius:4},
+          {label:'Gun perceived impact',data:gunPerceived,backgroundColor:'rgba(55,138,221,0.25)',borderColor:'rgba(55,138,221,0.5)',borderWidth:1,borderRadius:4},
+          {label:'Spirit perceived impact',data:spiritPerceived,backgroundColor:'rgba(212,83,126,0.25)',borderColor:'rgba(212,83,126,0.5)',borderWidth:1,borderRadius:4},
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y}}},
+        scales:{x:{},y:{title:{display:true,text:'DPS / Perceived impact'},beginAtZero:true}}}
+    });
+  }
+</script>
+</body>
+</html>
